@@ -10,7 +10,10 @@ import (
 	"strings"
 )
 
+const filePath = "db.csv"
+
 type record struct {
+	id       int
 	item     string
 	complete bool
 }
@@ -38,6 +41,32 @@ func (list *LinkedList) Insert(data record) {
 	}
 }
 
+func DeleteNode(head *Node, value int) *Node {
+	if head == nil {
+		return nil
+	}
+
+	// If the head node matches the value, return the next node
+	if head.data.id == value {
+		return head.next
+	}
+
+	// Traverse the list to find the node to delete
+	currentNode := head
+	for currentNode.next != nil {
+		println(value)
+		if currentNode.next.data.id == value {
+			// Skip the node to delete it
+			currentNode.next = currentNode.next.next
+			return head
+		}
+		currentNode = currentNode.next
+	}
+
+	// If the value is not found, return the original head
+	return head
+}
+
 func (list *LinkedList) Display() {
 	current := list.head
 
@@ -47,59 +76,8 @@ func (list *LinkedList) Display() {
 	}
 
 	for current != nil {
-		fmt.Printf("%v", current.data)
+		fmt.Printf("%v\n", current.data)
 		current = current.next
-	}
-}
-
-const filePath = "db.csv"
-
-func readSwitch(input string, dataLinkedList LinkedList) {
-	switch input {
-	case "v":
-		fmt.Println("Linkedlist logic.")
-		loadDBIntoMemory(&dataLinkedList)
-		dataLinkedList.Display()
-	case "a":
-		fmt.Println("Add")
-	case "d":
-		fmt.Println("Delete")
-	case "q":
-		fmt.Println("Quit")
-	case "default", "h":
-		fmt.Println("v: view\na: add\nd: delete\nq: quit")
-	}
-}
-
-func viewDB() {
-	// open file throw error if unable to open or read
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal("Unable to read input file "+filePath, err)
-	}
-	defer file.Close()
-
-	// read all items from csv file
-	csvReader := csv.NewReader(file)
-	rawRecords, err := csvReader.ReadAll()
-	records := []record{}
-	if err != nil {
-		log.Fatal("unable to parse file as CSV for "+filePath, err)
-	}
-	for _, line := range rawRecords {
-		boolConv, err := strconv.ParseBool(line[1])
-		if err != nil {
-			log.Fatal(err)
-		}
-		tempRec := record{item: line[0], complete: boolConv}
-		records = append(records, tempRec)
-	}
-	printRecords(records)
-}
-
-func printRecords(records []record) {
-	for _, rec := range records {
-		fmt.Printf("%s - %t\n", rec.item, rec.complete)
 	}
 }
 
@@ -118,11 +96,12 @@ func loadDBIntoMemory(dataLinkedList *LinkedList) {
 		log.Fatal(err)
 	}
 	for _, rec := range rawRecords {
-		boolConv, err := strconv.ParseBool(rec[1])
+		intConv, err := strconv.ParseInt(rec[0], 0, 16)
+		boolConv, err := strconv.ParseBool(rec[2])
 		if err != nil {
 			log.Fatal(err)
 		}
-		tempRec := record{item: rec[0], complete: boolConv}
+		tempRec := record{id: int(intConv), item: rec[1], complete: boolConv}
 		dataLinkedList.Insert(tempRec)
 	}
 }
@@ -147,8 +126,27 @@ func main() {
 
 		// Initialize the linked list from file
 		dataLinkedList := *&LinkedList{}
+		loadDBIntoMemory(&dataLinkedList)
 
-		// Logic based on users input
-		readSwitch(switchChar, dataLinkedList)
+		switch switchChar {
+		case "v":
+			dataLinkedList.Display()
+		case "a":
+			fmt.Println("Add")
+		case "d":
+			fmt.Print(": ")
+			switchInput := bufio.NewReader(os.Stdin)
+			char, _, err := switchInput.ReadRune()
+			deleteIDChar := string(char)
+			deleteID, err := strconv.ParseInt(deleteIDChar, 0, 16)
+			if err != nil {
+				log.Fatal(err)
+			}
+			dataLinkedList.head = DeleteNode(dataLinkedList.head, int(deleteID))
+		case "q":
+			fmt.Println("Quit")
+		case "default", "h":
+			fmt.Println("v: view\na: add\nd: delete\nq: quit")
+		}
 	}
 }
