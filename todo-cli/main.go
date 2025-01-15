@@ -2,86 +2,38 @@ package main
 
 import (
 	"bufio"
+	"container/list"
 	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const filePath = "db.csv"
 
 type record struct {
-	id       int
+	id       string
 	item     string
 	complete bool
 }
 
-type Node struct {
-	data record
-	next *Node
-}
-
-type LinkedList struct {
-	head *Node
-}
-
-func (list *LinkedList) Insert(data record) {
-	newNode := &Node{data: data}
-
-	if list.head == nil {
-		list.head = newNode
-	} else {
-		current := list.head
-		for current.next != nil {
-			current = current.next
-		}
-		current.next = newNode
+func listDisplay(list *list.List) {
+	for item := list.Front(); item != nil; item = item.Next() {
+		fmt.Println(item.Value)
 	}
 }
 
-func DeleteNode(head *Node, value int) *Node {
-	if head == nil {
-		return nil
-	}
-
-	// If the head node matches the value, return the next node
-	if head.data.id == value {
-		return head.next
-	}
-
-	// Traverse the list to find the node to delete
-	currentNode := head
-	for currentNode.next != nil {
-		println(value)
-		if currentNode.next.data.id == value {
-			// Skip the node to delete it
-			currentNode.next = currentNode.next.next
-			return head
-		}
-		currentNode = currentNode.next
-	}
-
-	// If the value is not found, return the original head
-	return head
-}
-
-func (list *LinkedList) Display() {
-	current := list.head
-
-	if current == nil {
-		fmt.Println("Linked list is empty.")
-		return
-	}
-
-	for current != nil {
-		fmt.Printf("%v\n", current.data)
-		current = current.next
+func searchById(list *list.List) {
+	for item := list.Front(); item != nil; item = item.Next() {
+		list.Remove(item)
 	}
 }
 
-func loadDBIntoMemory(dataLinkedList *LinkedList) {
+func loadDBIntoMemory() *list.List {
 	// Open the file and defer it's closing until the function exits
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -95,24 +47,27 @@ func loadDBIntoMemory(dataLinkedList *LinkedList) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	list := list.New()
 	for _, rec := range rawRecords {
-		intConv, err := strconv.ParseInt(rec[0], 0, 16)
-		boolConv, err := strconv.ParseBool(rec[2])
+		boolConv, err := strconv.ParseBool(rec[1])
 		if err != nil {
 			log.Fatal(err)
 		}
-		tempRec := record{id: int(intConv), item: rec[1], complete: boolConv}
-		dataLinkedList.Insert(tempRec)
+		tempRec := record{item: rec[0], complete: boolConv}
+		list.PushBack(tempRec)
 	}
+	return list
 }
 
 func main() {
 	// Default output
 	fmt.Println("Welcome to todos application!\nUse h for all possible commands.")
+	// Initialize the linkedlist from .csv file
+	list := loadDBIntoMemory()
 
 	// Read input from user and validate it against a list of possible uses.
 	for {
-		fmt.Print(": ")
+		fmt.Print("flag: ")
 		switchInput := bufio.NewReader(os.Stdin)
 		char, _, err := switchInput.ReadRune()
 		switchChar := string(char)
@@ -124,25 +79,29 @@ func main() {
 			break
 		}
 
-		// Initialize the linked list from file
-		dataLinkedList := *&LinkedList{}
-		loadDBIntoMemory(&dataLinkedList)
-
 		switch switchChar {
 		case "v":
-			dataLinkedList.Display()
+			listDisplay(list)
+		// Take user input and add new task to linked list.
 		case "a":
-			fmt.Println("Add")
+			fmt.Println("Enter task:")
+			taskInput := bufio.NewReader(os.Stdin)
+			task, err := taskInput.ReadString('\n')
+			if err != nil {
+				log.Fatal("error reading input:", err)
+			}
+			id := uuid.New()
+			newTask := record{id: id.String(), item: task, complete: false}
+			list.PushBack(newTask)
+		// Delete an task
 		case "d":
 			fmt.Print(": ")
-			switchInput := bufio.NewReader(os.Stdin)
-			char, _, err := switchInput.ReadRune()
-			deleteIDChar := string(char)
-			deleteID, err := strconv.ParseInt(deleteIDChar, 0, 16)
+			//switchInput := bufio.NewReader(os.Stdin)
+			//input, err := switchInput.ReadString('\n')
 			if err != nil {
 				log.Fatal(err)
 			}
-			dataLinkedList.head = DeleteNode(dataLinkedList.head, int(deleteID))
+			searchById(list)
 		case "q":
 			fmt.Println("Quit")
 		case "default", "h":
