@@ -15,7 +15,7 @@ import (
 
 const (
 	ProducerPort       = ":8080"
-	KafkaServerAddress = "localhost:9092"
+	KafkaServerAddress = "kafka:9092"
 	KafkaTopic         = "notifications"
 )
 

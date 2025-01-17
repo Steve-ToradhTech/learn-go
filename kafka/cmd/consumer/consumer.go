@@ -18,7 +18,7 @@ const (
 	ConsumerGroup      = "notifications-group"
 	ConsumerTopic      = "notifications"
 	ConsumerPort       = ":8081"
-	KafkaServerAddress = "localhost:9092"
+	KafkaServerAddress = "kafka:9092"
 )
 
 // --- Helper Functions ---
