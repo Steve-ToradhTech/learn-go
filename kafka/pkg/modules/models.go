@@ -10,3 +10,5 @@ type Notification struct {
 	To      User   `json:"to"`
 	Message string `json:"message"`
 }
+
+
