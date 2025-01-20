@@ -29,7 +29,7 @@ services:
     # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
-  db:
+  db-postgres:
     image: postgres:latest
     restart: unless-stopped
     networks:
@@ -39,6 +39,19 @@ services:
     env_file:
       # Ensure that the variables in .env match the same variables in devcontainer.json
       - .env
+
+  db-mysql:
+    networks:
+      - app-tier
+    image: mysql:latest
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: mysql
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+    volumes:
+      - ./mysql-data:/var/lib/mysql
 
   kafka:
     image: 'bitnami/kafka:latest'
@@ -58,6 +71,3 @@ services:
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
 
-
-    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
