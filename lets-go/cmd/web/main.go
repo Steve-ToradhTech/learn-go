@@ -3,33 +3,29 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template" // New import
 	"log/slog"
 	"net/http"
 	"os"
 
-	_ "github.com/go-sql-driver/mysql"
 	"snippetbox.toradhtech.com/internal/models"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
-// Create struct for dependency injection
+// Add a templateCache field to the application struct.
 type application struct {
-	logger   *slog.Logger
-	snippets *models.SnippetModel
+	logger        *slog.Logger
+	snippets      *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
-
-	addr := flag.String("addr", ":4000", "[:PORT] : HTTP network address")
-	debug := flag.Bool("debug", false, "[True/False] : See debug logging.")
+	addr := flag.String("addr", ":4000", "HTTP network address")
 	dsn := flag.String("dsn", "web:pass@tcp(db-mysql:3306)/snippetbox?parseTime=true", "MySQL data source name.")
 	flag.Parse()
 
-	// Checks and sets the logging level if debug is set to True.
-	logLevel := setDebugLevel(debug)
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: *debug,
-		Level:     logLevel,
-	}))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	db, err := openDB(*dsn)
 	if err != nil {
@@ -38,12 +34,21 @@ func main() {
 	}
 	defer db.Close()
 
-	app := &application{
-		logger:   logger,
-		snippets: &models.SnippetModel{DB: db},
+	// Initialize a new template cache...
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
 
-	logger.Info("starting server", slog.Any("addr", *addr))
+	// And add it to the application dependencies.
+	app := &application{
+		logger:        logger,
+		snippets:      &models.SnippetModel{DB: db},
+		templateCache: templateCache,
+	}
+
+	logger.Info("starting server", "addr", *addr)
 
 	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
