@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 // --- Runtime functions ---
@@ -78,4 +79,13 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	// is another time where we pass our http.ResponseWRiter to a function that takes an
 	// io.writer
 	buf.WriteTo(w)
+}
+
+// Create a newTemplateData() helper, which returns a teamplateData struct
+// initialized with the current year. Note that we're not using the *http.Request
+// parameter here at the moment,
+func (app *application) newTemplateData(r *http.Request) templateData {
+	return templateData{
+		CurrentYear: time.Now().Year(),
+	}
 }
